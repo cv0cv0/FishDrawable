@@ -1,12 +1,12 @@
 package me.gr.fishdrawable
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
-import android.content.res.Resources
 import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.os.Build
-import android.util.TypedValue
 import android.view.animation.LinearInterpolator
 import java.util.*
 
@@ -15,12 +15,11 @@ import java.util.*
  * Created by GR on 2017/9/20.
  */
 class FishDrawable : Drawable() {
-    private val HEAD_RADIUS = dp2px(16f)
+    val HEAD_RADIUS = dp2px(16f)
     private val BODY_LENGTH = HEAD_RADIUS * 3.2f
     private val FINS_LENGTH = HEAD_RADIUS * 1.3f
     private val TAIL1_LENGTH = HEAD_RADIUS * 1.12f
     private val TAIL2_LENGTH = HEAD_RADIUS * 1.3f
-    private val TOTAL_LENGTH = HEAD_RADIUS * 6.79f
     private val BODY_COLOR = Color.argb(220, 244, 92, 71)
     private val FINS_COLOR = Color.argb(100, 244, 92, 71)
     private val OTHER_COLOR = Color.argb(160, 244, 92, 71)
@@ -29,24 +28,22 @@ class FishDrawable : Drawable() {
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.DITHER_FLAG)
     private val path = Path()
-    private val finsAnimator = ObjectAnimator.ofFloat(this, "finsAngle", 0f, 1f, 0f)
-    private lateinit var headPoint: PointF
-    private var middlePoint = PointF(HEAD_RADIUS * 4.18f, HEAD_RADIUS * 4.18f)
+    val finsAnimator = ObjectAnimator.ofFloat(this, "finsAngle", 0f, 1f, 0f)
+    lateinit var headPoint: PointF
+    var middlePoint = PointF(HEAD_RADIUS * 4.18f, HEAD_RADIUS * 4.18f)
     private lateinit var endBodyPoint: PointF
     private lateinit var endTail1Point: PointF
     private lateinit var endTail2Point: PointF
-    private var mainAngle = 90f
+    var mainAngle = Random().nextFloat() * 360f
     private var bodyAngle = 0f
     private var finsAngle = 0f
     private var tail1Angle = 0f
     private var tail2Angle = 0f
-    private var waveFrequency = 1f
+    var waveFrequency = 1f
     private var currentValue = 0
 
     init {
         finsAnimator.repeatMode = ValueAnimator.REVERSE
-        finsAnimator.repeatCount = Random().nextInt(3)
-
         val animator = ValueAnimator.ofInt(0, 54000)
         animator.duration = SWAY_DURATION
         animator.interpolator = LinearInterpolator()
@@ -56,6 +53,14 @@ class FishDrawable : Drawable() {
             currentValue = it.animatedValue as Int
             invalidateSelf()
         }
+        animator.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationRepeat(animation: Animator?) {
+                super.onAnimationRepeat(animation)
+                finsAnimator.repeatCount = Random().nextInt(3)
+                finsAnimator.duration = ((Math.random() + 1) * 500).toLong()
+                finsAnimator.start()
+            }
+        })
         animator.start()
     }
 
@@ -201,12 +206,4 @@ class FishDrawable : Drawable() {
         tail2Angle = bodyAngle + (Math.sin(Math.toRadians(currentValue * waveFrequency * 1.5))).toFloat() * 35f
         endTail2Point = calculatePointF(endTail1Point, TAIL2_LENGTH, tail2Angle - 180f)
     }
-
-    private fun calculatePointF(startPointF: PointF, length: Float, angle: Float): PointF {
-        val deltaX = Math.cos(Math.toRadians(angle.toDouble())) * length
-        val deltaY = Math.sin(Math.toRadians(angle.toDouble() - 180)) * length
-        return PointF(startPointF.x + deltaX.toFloat(), startPointF.y + deltaY.toFloat())
-    }
-
-    private fun dp2px(dp: Float): Float = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, Resources.getSystem().displayMetrics)
 }
